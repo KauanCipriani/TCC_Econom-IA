@@ -1,0 +1,103 @@
+{
+  "info_treinamento": {
+    "data_treinamento": "2026-06-18 21:48:20",
+    "modelo": "RandomForestClassifier",
+    "hiperparametros": {
+      "n_estimators": 150,
+      "max_depth": 10,
+      "min_samples_leaf": 10,
+      "class_weight": "balanced"
+    },
+    "tickers_treino": [
+      "BBAS3",
+      "BBDC4",
+      "ITUB4"
+    ],
+    "ticker_out_of_sample": "SANB11",
+    "n_registros_treino": 3534,
+    "n_registros_teste": 1515,
+    "n_registros_oos": 1683,
+    "features_usadas": [
+      "rsi_14",
+      "macd_hist_z",
+      "sma_9_ratio",
+      "sma_21_ratio",
+      "sma_50_ratio",
+      "ema_9_ratio",
+      "ema_21_ratio",
+      "bb_position"
+    ],
+    "periodo_dados": "2019-03 a 2025-09",
+    "cv_folds": 5,
+    "cv_f1_medio": 0.33071922738258774,
+    "cv_f1_desvio": 0.0299026179644017
+  },
+  "resultados_teste": {
+    "f1_macro": 0.3238063682801056,
+    "precision_macro": 0.32632503236407845,
+    "recall_macro": 0.32343747510688975,
+    "accuracy": 0.3254125412541254,
+    "f1_por_classe": {
+      "compra": 0.36477987421383645,
+      "venda": 0.2891089108910891,
+      "neutro": 0.3175303197353914
+    },
+    "matriz_confusao": [
+      [
+        146,
+        140,
+        177
+      ],
+      [
+        175,
+        144,
+        156
+      ],
+      [
+        226,
+        148,
+        203
+      ]
+    ],
+    "n_amostras": 1515
+  },
+  "resultados_oos": {
+    "f1_macro": 0.35963083521918526,
+    "precision_macro": 0.36006922587971024,
+    "recall_macro": 0.3599623060555917,
+    "accuracy": 0.36779560308972076,
+    "f1_por_classe": {
+      "compra": 0.42625482625482625,
+      "venda": 0.3662940670679278,
+      "neutro": 0.28634361233480177
+    },
+    "matriz_confusao": [
+      [
+        213,
+        179,
+        206
+      ],
+      [
+        142,
+        130,
+        158
+      ],
+      [
+        210,
+        169,
+        276
+      ]
+    ],
+    "n_amostras": 1683
+  },
+  "feature_importance": {
+    "macd_hist_z": 0.15985531749300327,
+    "sma_9_ratio": 0.13348953680812228,
+    "sma_50_ratio": 0.12867964728500608,
+    "rsi_14": 0.12135263443130306,
+    "bb_position": 0.1179884559502703,
+    "ema_9_ratio": 0.11534784691491219,
+    "sma_21_ratio": 0.11510461366256482,
+    "ema_21_ratio": 0.10818194745481804
+  }
+}
