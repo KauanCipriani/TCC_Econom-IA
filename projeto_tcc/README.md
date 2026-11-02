@@ -11,6 +11,8 @@ SVM, MLP e LSTM), prevê o preço dos próximos 1 a 15 pregões com uma rede LST
 interface web com linguagem para iniciantes e para usuários avançados, além de indicadores
 macroeconômicos do Brasil e dos Estados Unidos.
 
+**Acesse online:** [econom-ia.streamlit.app](https://econom-ia.streamlit.app) (Streamlit Community Cloud). Depois de 12 horas sem acesso o aplicativo hiberna; ao abrir, clique em "Yes, get this app back up!" e aguarde cerca de um minuto.
+
 > Ferramenta acadêmica de apoio à decisão. Não constitui recomendação de investimento.
 
 ---
