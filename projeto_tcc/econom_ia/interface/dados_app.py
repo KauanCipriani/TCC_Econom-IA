@@ -7,7 +7,10 @@ Carregamento dos dados da interface, com o cache do Streamlit.
     macroeconômicos (1 h) se renovam sozinhos sem reiniciar o aplicativo.
 
 Falhas de rede nunca interrompem a interface: cada função devolve None e a
-tela correspondente exibe a informação como indisponível.
+tela correspondente exibe a informação como indisponível. As falhas não são
+guardadas no cache (a função interna lança o erro, que o Streamlit não
+memoriza), então a próxima interação tenta a fonte de novo em vez de manter
+"indisponível" por uma hora.
 """
 
 from __future__ import annotations
@@ -51,17 +54,33 @@ def sinais(chave_modelo: str, usar_internet: bool, versao_dados: str) -> pd.Data
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def _serie_bcb(chave: str, usar_internet: bool, anos: int):
+    return ClienteBCB(validade_s=3600, offline=not usar_internet).serie(chave, anos)
+
+
 def serie_bcb(chave: str, usar_internet: bool = True, anos: int = 5):
     try:
-        return ClienteBCB(validade_s=3600, offline=not usar_internet).serie(chave, anos)
+        return _serie_bcb(chave, usar_internet, anos)
     except (ErroIntegracao, KeyError, ValueError):
         return None
 
 
+def _chave_fred() -> str | None:
+    """Chave da API do FRED guardada nos "secrets" do Streamlit (opcional)."""
+    try:
+        return st.secrets.get("FRED_API_KEY")
+    except Exception:  # sem arquivo de secrets: segue sem chave
+        return None
+
+
 @st.cache_data(ttl=3600, show_spinner=False)
+def _serie_fred(chave: str, usar_internet: bool, anos: int, chave_api: str | None):
+    return ClienteFRED(validade_s=3600, offline=not usar_internet, chave_api=chave_api).serie(chave, anos)
+
+
 def serie_fred(chave: str, usar_internet: bool = True, anos: int = 5):
     try:
-        return ClienteFRED(validade_s=3600, offline=not usar_internet).serie(chave, anos)
+        return _serie_fred(chave, usar_internet, anos, _chave_fred())
     except (ErroIntegracao, KeyError, ValueError):
         return None
 
@@ -72,10 +91,14 @@ def cotacao_mercado(chave: str, usar_internet: bool = True):
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
+def _expectativas_focus(usar_internet: bool):
+    return ClienteFocus(validade_s=3600, offline=not usar_internet).expectativas_selic()
+
+
 def expectativas_focus(usar_internet: bool = True):
     """Projeções do Relatório Focus para a Selic nas próximas reuniões do Copom."""
     try:
-        return ClienteFocus(validade_s=3600, offline=not usar_internet).expectativas_selic()
+        return _expectativas_focus(usar_internet)
     except (ErroIntegracao, KeyError, ValueError):
         return None
 
@@ -99,9 +122,16 @@ def decisao_copom(usar_internet: bool = True):
 
 
 @st.cache_data(ttl=1800, show_spinner=False)
+def _manchetes(usar_internet: bool) -> Manchetes:
+    resultado = ClienteNoticias(validade_s=1800, offline=not usar_internet).manchetes()
+    if not resultado.noticias:
+        raise ErroIntegracao("noticias: nenhuma manchete obtida.")  # não guarda a falha no cache
+    return resultado
+
+
 def manchetes(usar_internet: bool = True) -> Manchetes:
     try:
-        return ClienteNoticias(validade_s=1800, offline=not usar_internet).manchetes()
+        return _manchetes(usar_internet)
     except (ErroIntegracao, ValueError):
         return Manchetes([], None, None)
 

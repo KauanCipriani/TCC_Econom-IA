@@ -4,18 +4,25 @@ Cliente HTTP base com tempo-limite e cópia local das respostas.
 Fluxo de uma consulta:
   1. se existe cópia local mais nova que a "validade", ela é usada (evita
      requisições repetidas a cada interação na interface);
-  2. senão, a API é consultada e a resposta é gravada em disco;
+  2. senão, a API é consultada (com uma nova tentativa em caso de falha de
+     rede) e a resposta é gravada em disco;
   3. se a API falhar, usa-se a última cópia local, mesmo antiga;
   4. sem API e sem cópia, é lançada ErroIntegracao.
 
 No modo offline (opção "Buscar dados na internet" desligada na interface), o
 passo 2 é pulado e apenas as cópias locais são usadas.
+
+Cada falha é registrada no log (logging) com o motivo, o que permite
+diagnosticar uma fonte indisponível, por exemplo nos registros do servidor
+quando o aplicativo está publicado na internet.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+import logging
+import re
 import time
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -27,6 +34,8 @@ import pandas as pd
 import requests
 
 from econom_ia.config import CAMINHOS
+
+LOGGER = logging.getLogger("econom_ia.integracoes")
 
 
 class ErroIntegracao(RuntimeError):
@@ -76,7 +85,9 @@ class ClienteHTTP:
     """Base das integrações: requisição, validação e cache em disco."""
 
     nome: str = "http"
-    TEMPO_LIMITE_S: float = 10.0
+    TEMPO_LIMITE_S: float = 20.0
+    TENTATIVAS: int = 2       # falhas de rede (tempo esgotado, conexão) são tentadas de novo
+    ESPERA_ENTRE_TENTATIVAS_S: float = 1.5
     # Parâmetros que mudam a cada dia (datas de início e fim) e por isso ficam fora
     # do nome da cópia local; assim a cópia de ontem continua valendo sem internet.
     IGNORAR_NA_CHAVE: tuple[str, ...] = ()
@@ -98,9 +109,17 @@ class ClienteHTTP:
 
     # ── Requisições ────────────────────────────────────────────────────────
     def _get(self, url: str, params: dict | None = None) -> requests.Response:
-        resposta = self.sessao.get(url, params=params, headers=self.CABECALHOS, timeout=self.TEMPO_LIMITE_S)
-        resposta.raise_for_status()
-        return resposta
+        for tentativa in range(1, self.TENTATIVAS + 1):
+            try:
+                resposta = self.sessao.get(url, params=params, headers=self.CABECALHOS,
+                                           timeout=self.TEMPO_LIMITE_S)
+                resposta.raise_for_status()
+                return resposta
+            except (requests.Timeout, requests.ConnectionError):
+                if tentativa == self.TENTATIVAS:
+                    raise
+                time.sleep(self.ESPERA_ENTRE_TENTATIVAS_S)
+        raise AssertionError("inalcançável")
 
     def obter_json(self, url: str, params: dict | None = None) -> Resposta:
         return self.consultar(self._chave(url, params), lambda: self._get(url, params).json())
@@ -126,9 +145,16 @@ class ClienteHTTP:
             self._gravar_cache(chave, conteudo)
             return Resposta(conteudo, "online", datetime.now())
         except Exception as erro:  # rede, formato inesperado, biblioteca ausente
+            LOGGER.warning("%s: consulta falhou (%s: %s)", self.nome, erro.__class__.__name__,
+                           self._sem_segredos(str(erro))[:300])
             if copia is not None:
                 return Resposta(copia["conteudo"], "cache_antigo", datetime.fromtimestamp(copia["timestamp"]))
             raise ErroIntegracao(f"{self.nome}: fonte indisponível ({erro.__class__.__name__}).") from erro
+
+    @staticmethod
+    def _sem_segredos(texto: str) -> str:
+        """Remove chaves de acesso (api_key=...) das mensagens de erro antes de registrá-las."""
+        return re.sub(r"(api_key=)[^&\s]+", r"\1***", texto)
 
     # ── Cache em disco ─────────────────────────────────────────────────────
     def _chave(self, url: str, params: dict | None) -> str:

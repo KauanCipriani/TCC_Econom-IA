@@ -51,6 +51,7 @@ class MercadoPrevisao:
 
 class ClientePolymarket(ClienteHTTP):
     nome = "polymarket"
+    TENTATIVAS = 1  # bloqueado no Brasil: repetir só atrasaria a tela
     TEMPO_LIMITE_S = 6.0
     URL_EVENTOS = "https://gamma-api.polymarket.com/events"
     URL_BUSCA = "https://gamma-api.polymarket.com/public-search"

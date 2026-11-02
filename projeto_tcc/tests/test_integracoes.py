@@ -178,3 +178,36 @@ def test_copia_local_continua_valendo_em_outro_dia(tmp_path):
     hoje = bcb._chave(url, {"formato": "json", "dataInicial": "28/09/2021", "dataFinal": "28/09/2026"})
     assert ontem == hoje
     assert bcb._chave(url, {"formato": "json"}) != bcb._chave(bcb.URL.format(codigo=13522), {"formato": "json"})
+
+
+def test_fred_usa_a_api_oficial_quando_ha_chave(tmp_path):
+    recebidos = {}
+
+    def responder(url, params):
+        recebidos.update(url=url, **params)
+        return {"observations": [{"date": "2026-10-02", "value": "4.10"}, {"date": "2026-10-01", "value": "."}]}
+
+    cliente = ClienteFRED(pasta_cache=tmp_path, sessao=SessaoFalsa(responder), chave_api="abc123")
+    serie = cliente.serie("fed_funds")
+    assert recebidos["url"] == ClienteFRED.URL_API and recebidos["api_key"] == "abc123"
+    assert serie.ultimo_valor == pytest.approx(4.10) and len(serie.dados) == 1  # "." é descartado
+    assert not any("abc123" in arquivo.name for arquivo in tmp_path.iterdir())
+
+
+def test_falha_de_rede_e_tentada_de_novo(tmp_path, monkeypatch):
+    class SessaoInstavel(SessaoFalsa):
+        def get(self, url, params=None, headers=None, timeout=None):
+            self.chamadas += 1
+            if self.chamadas == 1:
+                raise requests.Timeout("lenta")
+            return RespostaFalsa([{"data": "01/09/2026", "valor": "14.25"}])
+
+    monkeypatch.setattr(ClienteHTTP, "ESPERA_ENTRE_TENTATIVAS_S", 0)
+    sessao = SessaoInstavel()
+    serie = ClienteBCB(pasta_cache=tmp_path, sessao=sessao).serie("selic_meta")
+    assert sessao.chamadas == 2 and serie.ultimo_valor == pytest.approx(14.25)
+
+
+def test_chave_de_acesso_nao_aparece_no_log():
+    assert ClienteHTTP._sem_segredos("erro em ...?api_key=segredo&file_type=json") == (
+        "erro em ...?api_key=***&file_type=json")
