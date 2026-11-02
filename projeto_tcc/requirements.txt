@@ -1,8 +1,21 @@
-streamlit>=1.32.0
-pandas>=2.0.0
-numpy>=1.24.0
-plotly>=5.18.0
-scikit-learn==1.9.0
-joblib>=1.3.0
-pyarrow>=14.0.0
-yfinance>=0.2.30
+# Econom-IA: dependências (Python 3.11 ou superior).
+# Instalação:  pip install -r requirements.txt --upgrade
+
+# Interface web e gráficos
+streamlit>=1.64,<2
+plotly>=5.24
+
+# Dados, modelos e avaliação
+pandas>=2.2
+numpy>=2.0
+scikit-learn==1.9.0      # versão fixa: os modelos salvos (.pkl) dependem dela
+torch>=2.5               # MLP e LSTM (PyTorch); no Windows o pip instala a versão para CPU
+joblib>=1.4
+pyarrow>=17
+
+# Coleta de cotações e integrações com APIs
+yfinance>=0.2.54
+requests>=2.32
+
+# Testes automatizados
+pytest>=8

@@ -1,0 +1,13 @@
+# Ambiente virtual e caches do Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# Cópias locais das respostas das APIs (recriadas automaticamente)
+dados/cache_apis/
+
+# Segredos do Streamlit (não usados pelo projeto, mas nunca devem ir ao Git)
+.streamlit/secrets.toml

@@ -1,0 +1,7 @@
+# Ambiente virtual criado na raiz do repositório (fica só no computador, não vai para o Git)
+venv/
+.venv/
+
+# Caches do Python
+__pycache__/
+*.pyc

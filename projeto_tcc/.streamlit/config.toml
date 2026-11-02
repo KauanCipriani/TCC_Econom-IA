@@ -1,0 +1,18 @@
+# Configuração do Streamlit para o Econom-IA (tema escuro da interface).
+
+[theme]
+base = "dark"
+primaryColor = "#3987e5"
+backgroundColor = "#0b0f14"
+secondaryBackgroundColor = "#161a23"
+textColor = "#f1f5f9"
+
+[client]
+toolbarMode = "minimal"
+
+[browser]
+gatherUsageStats = false
+
+[server]
+# Não pede e-mail no terminal na primeira execução (o app abre direto no navegador).
+showEmailPrompt = false
