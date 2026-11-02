@@ -44,6 +44,11 @@ class Componentes:
         return f'<div class="nota">{texto_html}</div>'
 
     @staticmethod
+    def aviso_simples(texto_html: str) -> str:
+        """Aviso em destaque (borda amarela), para limitações que o usuário precisa ver."""
+        return f'<div class="aviso" style="margin: 4px 0 16px 0;">{texto_html}</div>'
+
+    @staticmethod
     def aviso_cvm() -> str:
         return f'<div class="aviso"><strong class="aviso-titulo">Aviso importante:</strong> {AVISO_CVM}</div>'
 

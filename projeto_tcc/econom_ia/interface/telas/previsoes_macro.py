@@ -246,9 +246,14 @@ class TelaPrevisoesMacro(Tela):
                 "Não há mercado aberto para a próxima reunião do Copom no Polymarket neste momento. Os mercados "
                 "costumam abrir algumas semanas antes de cada reunião."))
             return
+        if mercado.pouco_volume:
+            self.ui.renderizar(self.ui.aviso_simples(
+                f"Pouco volume negociado neste mercado (US$ {fmt.numero_compacto(mercado.volume)}): com tão pouco "
+                "dinheiro, algumas apostas bastam para mudar os números, e as probabilidades abaixo são pouco "
+                "confiáveis. Use as expectativas do Relatório Focus, acima, como referência principal."))
         grafico, resumo = st.columns([1.6, 1], gap="large")
         with grafico:
-            self.exibir(self.graficos.probabilidades(mercado.opcoes), "grafico_copom")
+            self.exibir(self.graficos.probabilidades(mercado.opcoes_normalizadas), "grafico_copom")
         with resumo:
             rotulo, probabilidade = mercado.mais_provavel
             volume = "" if mercado.volume is None else f"Volume negociado: US$ {fmt.numero_compacto(mercado.volume)}"
@@ -259,9 +264,15 @@ class TelaPrevisoesMacro(Tela):
                 fonte=f"{volume} · {self.ui.origem(mercado.origem, mercado.obtido_em)}"))
             st.link_button("Abrir o mercado no Polymarket", mercado.url, icon=":material/open_in_new:",
                            width="stretch")
+        ajuste = ""
+        if abs(mercado.soma_bruta - 1) > 0.02:
+            ajuste = (f" Como cada resultado é negociado separadamente, os preços brutos somavam "
+                      f"{fmt.numero(mercado.soma_bruta * 100, 0)}%; as probabilidades exibidas foram ajustadas "
+                      "proporcionalmente para somar 100%.")
         st.caption("No Polymarket, cada resultado é negociado como um contrato que paga US$ 1 se acontecer. O preço "
-                   "do contrato, entre 0 e 1, funciona como a probabilidade coletiva estimada pelos participantes. "
-                   "O sistema apenas lê essas cotações públicas; não há apostas nem cadastro na plataforma.")
+                   "do contrato, entre 0 e 1, funciona como a probabilidade coletiva estimada pelos participantes."
+                   f"{ajuste} O sistema apenas lê essas cotações públicas; não há apostas nem cadastro na "
+                   "plataforma.")
 
     # ── Fontes ─────────────────────────────────────────────────────────────
     def _fontes(self, series: dict, focus: ExpectativasSelic | None, mercado: MercadoPrevisao | None,

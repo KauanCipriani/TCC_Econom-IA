@@ -44,9 +44,35 @@ class MercadoPrevisao:
     origem: str = "online"
     obtido_em: datetime | None = None
 
+    # Abaixo deste volume (US$), poucas apostas mexem nos preços e as probabilidades são pouco confiáveis.
+    VOLUME_MINIMO = 10_000
+
+    @property
+    def soma_bruta(self) -> float:
+        """
+        Soma dos preços dos resultados.
+
+        Cada resultado é um mercado "sim/não" separado, cotado pelo último preço
+        negociado; em mercados com pouca liquidez a soma se afasta de 1 (100%).
+        """
+        return sum(probabilidade for _, probabilidade in self.opcoes)
+
+    @property
+    def opcoes_normalizadas(self) -> list[tuple[str, float]]:
+        """Probabilidades divididas pela soma, para que totalizem 100%."""
+        soma = self.soma_bruta
+        if soma <= 0:
+            return list(self.opcoes)
+        return [(rotulo, probabilidade / soma) for rotulo, probabilidade in self.opcoes]
+
+    @property
+    def pouco_volume(self) -> bool:
+        return self.volume is not None and self.volume < self.VOLUME_MINIMO
+
     @property
     def mais_provavel(self) -> tuple[str, float] | None:
-        return max(self.opcoes, key=lambda opcao: opcao[1]) if self.opcoes else None
+        opcoes = self.opcoes_normalizadas
+        return max(opcoes, key=lambda opcao: opcao[1]) if opcoes else None
 
 
 class ClientePolymarket(ClienteHTTP):

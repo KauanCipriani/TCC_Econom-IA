@@ -112,7 +112,7 @@ EVENTO = {
 def test_polymarket_converte_e_traduz_os_resultados():
     mercado = ClientePolymarket.converter(EVENTO)
     assert mercado.opcoes == [("Corte de 0,25 p.p.", 0.7), ("Manutenção da Selic", 0.22)]
-    assert mercado.mais_provavel == ("Corte de 0,25 p.p.", 0.7)
+    assert mercado.mais_provavel == ("Corte de 0,25 p.p.", pytest.approx(0.7 / 0.92))  # normalizada
     assert ClientePolymarket.traduzir("50+ bps increase") == "Alta de 0,50 p.p. ou mais"
 
 
@@ -211,3 +211,16 @@ def test_falha_de_rede_e_tentada_de_novo(tmp_path, monkeypatch):
 def test_chave_de_acesso_nao_aparece_no_log():
     assert ClienteHTTP._sem_segredos("erro em ...?api_key=segredo&file_type=json") == (
         "erro em ...?api_key=***&file_type=json")
+
+
+def test_polymarket_normaliza_as_probabilidades_e_marca_pouco_volume():
+    from econom_ia.integracoes import MercadoPrevisao
+
+    mercado = MercadoPrevisao("Copom", "https://polymarket.com/event/x", None, 1400.0,
+                              [("Manutenção da Selic", 0.40), ("Corte de 0,50 p.p. ou mais", 0.30),
+                               ("Alta de 0,25 p.p.", 0.18), ("Corte de 0,25 p.p.", 0.18),
+                               ("Alta de 0,50 p.p. ou mais", 0.10)])
+    assert mercado.soma_bruta == pytest.approx(1.16)
+    assert sum(p for _, p in mercado.opcoes_normalizadas) == pytest.approx(1.0)
+    assert mercado.mais_provavel == ("Manutenção da Selic", pytest.approx(0.40 / 1.16))
+    assert mercado.pouco_volume
